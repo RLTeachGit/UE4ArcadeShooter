@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+
+
 #include "PlayerBase.generated.h"
 
 UCLASS()
@@ -29,7 +31,13 @@ public:
 
 //Non Boilerplate code below
 public:
-    virtual void NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
+    virtual void NotifyHit(class UPrimitiveComponent* MyComp,
+        class AActor* Other,
+        class UPrimitiveComponent* OtherComp,
+        bool bSelfMoved, FVector HitLocation,
+        FVector HitNormal,
+        FVector NormalImpulse,
+        const FHitResult& Hit) override;
 
 	UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USphereComponent* ColliderRoot;
@@ -37,9 +45,24 @@ public:
 	UPROPERTY(Category = Camera, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* Camera;
 
+    UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+    class USceneComponent* FirePoint1;
+
+    UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+    class USceneComponent* FirePoint2;
+
+    UPROPERTY(Category = Laser, EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+    TSubclassOf<class ALaserBase> LaserBP;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Laser)
+    class USoundBase* LaserSound;
+
+
+
 //Callbacks for movement
 protected:
-	void MoveUpInput(float Val);
+    void Fire();
+    void MoveUpInput(float Val);
 
 	void MoveRightInput(float Val);
 
@@ -74,4 +97,7 @@ private:
 
     /** Current roll speed */
     float CurrentRollSpeed;
+
+
+
 };

@@ -1,12 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
-#include "PlayerBase.h"
+#include "PlayerBase.h" //Need to be in this order
+#include "LaserBase.h"
 #include "Camera/CameraComponent.h"  //Needed for UCameraComponent
 #include "Components/SphereComponent.h" //Needed for USphereComponent
 #include "Components/InputComponent.h" //Needed for UInputComponent
+
 #include "Engine/World.h" //For Debug
 
+#include <EngineGlobals.h>
+#include <Runtime/Engine/Classes/Engine/Engine.h>
+
+#include "LaserBase.h"
+
+#include "Runtime/Engine/Classes/GameFramework/Actor.h"
+#include "Runtime/Engine/Classes/Components/ActorComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 APlayerBase::APlayerBase()
@@ -19,17 +29,32 @@ APlayerBase::APlayerBase()
 	Camera->SetupAttachment(ColliderRoot); // Attach Camera to Collider
 	Camera->bUsePawnControlRotation = false; // Don't rotate camera with controller
 
+    FirePoint1 = CreateDefaultSubobject<USceneComponent>(TEXT("FirePoint1"));
+    FirePoint1->SetupAttachment(ColliderRoot);
+    FirePoint1->SetRelativeLocation(FVector(1.0f, -100, 0));
+    FirePoint1->SetRelativeRotation(FRotator(0.0f, 0, 10.0f));
+
+    FirePoint2 = CreateDefaultSubobject<USceneComponent>(TEXT("FirePoint2"));
+    FirePoint2->SetupAttachment(ColliderRoot);
+    FirePoint2->SetRelativeLocation(FVector(100.0f, 100, 0));
+    FirePoint2->SetRelativeRotation(FRotator(0.0f, 0, -10.0f));
+
 
     // Set handling parameters
     Acceleration = 700.f;
     TurnSpeed = 70.f;
     MaxSpeed = 4000.f;
     MinSpeed = 500.f;
-    CurrentForwardSpeed = 700.f;
+    CurrentForwardSpeed = 0;
 }
 
 
-void APlayerBase::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
+void APlayerBase::NotifyHit(class UPrimitiveComponent* MyComp,
+    class AActor* Other,
+    class UPrimitiveComponent* OtherComp,
+    bool bSelfMoved, FVector HitLocation,
+    FVector HitNormal,
+    FVector NormalImpulse, const FHitResult& Hit)
 {
     Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
@@ -42,7 +67,7 @@ void APlayerBase::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Oth
 void APlayerBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 // Called every frame
@@ -77,8 +102,39 @@ void APlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAxis("Thrust", this, &APlayerBase::ThrustInput); //Bind each input
 	PlayerInputComponent->BindAxis("MoveUp", this, &APlayerBase::MoveUpInput);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerBase::MoveRightInput);
+
+    PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerBase::Fire);
 }
 
+
+void APlayerBase::Fire()
+{
+    UWorld* const World = GetWorld();
+    if (LaserBP!= NULL && World != NULL)
+    {
+        FActorSpawnParameters ActorSpawnParams;
+        ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+        ALaserBase* tLaser1 = World->SpawnActor<ALaserBase>(LaserBP, FirePoint1->GetComponentLocation(), FirePoint1->GetComponentRotation(), ActorSpawnParams);
+        ALaserBase* tLaser2 = World->SpawnActor<ALaserBase>(LaserBP, FirePoint2->GetComponentLocation(), FirePoint2->GetComponentRotation(), ActorSpawnParams);
+        if (tLaser1 != NULL && tLaser2!=NULL)
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, TEXT("Laser Spawning"));
+
+            if (LaserSound != NULL)
+            {
+                UGameplayStatics::PlaySoundAtLocation(this, LaserSound, GetActorLocation());
+            }
+        }
+        else
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Laser failed to Spawn"));
+        }
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Laser invalid"));
+    }
+}
 
 void APlayerBase::MoveUpInput(float Val)
 {
